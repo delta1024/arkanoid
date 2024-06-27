@@ -6,17 +6,6 @@ const Brick = struct {
     rec: Rectangle,
     color: Color,
     hit: bool = false,
-    pub const Iter = struct {
-        buff: []Brick,
-        row_len: usize,
-        i: usize,
-        pub fn next(self: *Iter) ?[]Brick {
-            if ((self.i + 1) * self.row_len > self.buff.len)
-                return null;
-            defer self.i += 1;
-            return self.buff[self.i * self.row_len .. (self.i + 1) * self.row_len];
-        }
-    };
 };
 
 const BRICK_COUNT: usize = 12;
@@ -27,51 +16,96 @@ pub fn main() !void {
         pub const fps: i32 = 60;
     };
     const brick_size: f32 = @as(f32, @floatFromInt(screen.width)) / @as(f32, @floatFromInt(BRICK_COUNT));
-    ray.initWindow(screen.width, screen.height, "arkanoid");
-    defer ray.closeWindow();
-    ray.setTargetFps(screen.fps);
+    const texts = setup(.{
+        .width = screen.width,
+        .height = screen.height,
+        .fps = screen.fps,
+    });
+    defer shutdown(texts);
+    var bricks: [BRICK_COUNT * 3]Brick = undefined;
+    setupBricks(&bricks, brick_size);
+
+    while (!ray.windowShouldClose()) {
+        {
+            ray.beginTextureMode(texts.screen.texture);
+            defer ray.endTextureMode();
+            for (bricks) |brick|
+                if (!brick.hit)
+                    ray.drawTexturePro(texts.brick.texture, texts.brick.source, brick.rec, .{ 0, 0 }, 0, brick.color);
+        }
+        ray.beginDrawing();
+        defer ray.endDrawing();
+        ray.clearBackground(ray.colors.RayWhite);
+        ray.drawTextureRec(texts.screen.texture.texture, texts.screen.source, .{ 0, 0 }, ray.colors.White);
+        ray.drawText("Arkanoid", (screen.width / 2) - (24 * 4), (screen.height / 2) - 12, 24, ray.colors.Black);
+    }
+}
+const LoadedTextures = struct {
+    brick: struct {
+        texture: ray.Texture2D,
+        source: Rectangle,
+    },
+    screen: struct {
+        texture: ray.RenderTexture2D,
+        source: Rectangle,
+    },
+};
+const SetupOpts = struct {
+    width: i32,
+    height: i32,
+    fps: i32,
+};
+pub fn setup(opts: SetupOpts) LoadedTextures {
+    ray.initWindow(opts.width, opts.height, "arkanoid");
+    ray.setTargetFps(opts.fps);
 
     const brick_texture = blk: {
         const image = ray.loadImage("assets/texture_brick_100.png");
         defer ray.unloadImage(image);
         break :blk ray.loadTextureFromImage(image);
     };
-    defer ray.unloadTexture(brick_texture);
     const brick_texture_source = ray.Rectangle{
         .x = 0,
         .y = 0,
         .width = @floatFromInt(brick_texture.width),
         .height = @floatFromInt(brick_texture.height),
     };
-
-    var bricks: [BRICK_COUNT * 3]Brick = undefined;
-    setUpBricks(&bricks, brick_size);
-    const screen_buff = ray.loadRenderTexture(screen.width, screen.height);
-    defer ray.unloadRenderTexture(screen_buff);
+    const screen_buff = ray.loadRenderTexture(opts.width, opts.height);
     const screen_source = Rectangle{
         .x = 0,
         .y = 0,
         .width = @floatFromInt(screen_buff.texture.width),
         .height = @floatFromInt(-screen_buff.texture.height),
     };
-    while (!ray.windowShouldClose()) {
-        {
-            ray.beginTextureMode(screen_buff);
-            defer ray.endTextureMode();
-            for (bricks) |brick|
-                if (!brick.hit)
-                    ray.drawTexturePro(brick_texture, brick_texture_source, brick.rec, .{ 0, 0 }, 0, brick.color);
-        }
-        ray.beginDrawing();
-        defer ray.endDrawing();
-        ray.clearBackground(ray.colors.RayWhite);
-        ray.drawTextureRec(screen_buff.texture, screen_source, .{ 0, 0 }, ray.colors.White);
-        ray.drawText("Arkanoid", (screen.width / 2) - (24 * 4), (screen.height / 2) - 12, 24, ray.colors.Black);
-    }
+    return LoadedTextures{
+        .brick = .{
+            .texture = brick_texture,
+            .source = brick_texture_source,
+        },
+        .screen = .{
+            .texture = screen_buff,
+            .source = screen_source,
+        },
+    };
 }
-
-fn setUpBricks(bricks: []Brick, brick_size: f32) void {
-    var iter: Brick.Iter = .{
+fn shutdown(texts: LoadedTextures) void {
+    ray.unloadTexture(texts.brick.texture);
+    ray.unloadRenderTexture(texts.screen.texture);
+    ray.closeWindow();
+}
+pub const BrickIter = struct {
+    buff: []Brick,
+    row_len: usize,
+    i: usize,
+    pub fn next(self: *BrickIter) ?[]Brick {
+        if ((self.i + 1) * self.row_len > self.buff.len)
+            return null;
+        defer self.i += 1;
+        return self.buff[self.i * self.row_len .. (self.i + 1) * self.row_len];
+    }
+};
+fn setupBricks(bricks: []Brick, brick_size: f32) void {
+    var iter: BrickIter = .{
         .buff = bricks,
         .row_len = BRICK_COUNT,
         .i = 0,
