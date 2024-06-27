@@ -2,14 +2,22 @@ const std = @import("std");
 const ray = @import("raylib");
 const Rectangle = ray.Rectangle;
 const Color = ray.Color;
+const Vector2 = ray.Vector2;
+
 const Brick = struct {
     rec: Rectangle,
     color: Color,
     hit: bool = false,
 };
 
+const Ball = struct {
+    pos: Vector2,
+    dir: Vector2,
+};
+
 const BRICK_COUNT: usize = 12;
 const PLAT_SPEED: f32 = 3;
+const BALL_SPEED: f32 = 3;
 pub fn main() !void {
     const screen = struct {
         pub const width: i32 = 800;
@@ -26,7 +34,11 @@ pub fn main() !void {
     var bricks: [BRICK_COUNT * 3]Brick = undefined;
     setupBricks(&bricks, brick_size);
 
-    var platform: Rectangle = .{ .x = (screen.width / 2) - 20, .y = screen.height - 20, .height = 10, .width = 40 };
+    var platform: Rectangle = .{ .x = (screen.width / 2) - 25, .y = screen.height - 20, .height = 10, .width = 40 };
+    const ball: Ball = .{
+        .pos = .{ @as(f32, @floatFromInt(screen.width / 2)) - 3.5, @as(f32, @floatFromInt(screen.height)) - 50 },
+        .dir = .{ 0, 0 },
+    };
 
     while (!ray.windowShouldClose()) {
         const delta = ray.getFrameTime();
@@ -49,6 +61,7 @@ pub fn main() !void {
         ray.clearBackground(ray.colors.RayWhite);
         ray.drawTextureRec(texts.screen.texture.texture, texts.screen.source, .{ 0, 0 }, ray.colors.White);
         ray.drawRectangleRec(platform, ray.colors.Black);
+        ray.drawCircleV(ball.pos, 7, ray.colors.Green);
     }
 }
 const LoadedTextures = struct {
