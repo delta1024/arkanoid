@@ -30,6 +30,7 @@ pub fn main() !void {
     ray.initWindow(screen.width, screen.height, "arkanoid");
     defer ray.closeWindow();
     ray.setTargetFps(screen.fps);
+
     const brick_texture = blk: {
         const image = ray.loadImage("assets/texture_brick_100.png");
         defer ray.unloadImage(image);
@@ -42,15 +43,29 @@ pub fn main() !void {
         .width = @floatFromInt(brick_texture.width),
         .height = @floatFromInt(brick_texture.height),
     };
+
     var bricks: [BRICK_COUNT * 3]Brick = undefined;
     setUpBricks(&bricks, brick_size);
+    const screen_buff = ray.loadRenderTexture(screen.width, screen.height);
+    defer ray.unloadRenderTexture(screen_buff);
+    const screen_source = Rectangle{
+        .x = 0,
+        .y = 0,
+        .width = @floatFromInt(screen_buff.texture.width),
+        .height = @floatFromInt(-screen_buff.texture.height),
+    };
     while (!ray.windowShouldClose()) {
+        {
+            ray.beginTextureMode(screen_buff);
+            defer ray.endTextureMode();
+            for (bricks) |brick|
+                if (!brick.hit)
+                    ray.drawTexturePro(brick_texture, brick_texture_source, brick.rec, .{ 0, 0 }, 0, brick.color);
+        }
         ray.beginDrawing();
         defer ray.endDrawing();
         ray.clearBackground(ray.colors.RayWhite);
-        for (bricks) |brick|
-            if (!brick.hit)
-                ray.drawTexturePro(brick_texture, brick_texture_source, brick.rec, .{ 0, 0 }, 0, brick.color);
+        ray.drawTextureRec(screen_buff.texture, screen_source, .{ 0, 0 }, ray.colors.White);
         ray.drawText("Arkanoid", (screen.width / 2) - (24 * 4), (screen.height / 2) - 12, 24, ray.colors.Black);
     }
 }
