@@ -25,6 +25,8 @@ pub fn main() !void {
     var bricks: [BRICK_COUNT * 3]Brick = undefined;
     setupBricks(&bricks, brick_size);
 
+    const platform: Rectangle = .{ .x = (screen.width / 2) - 20, .y = screen.height - 20, .height = 10, .width = 40 };
+
     while (!ray.windowShouldClose()) {
         {
             ray.beginTextureMode(texts.screen.texture);
@@ -37,7 +39,7 @@ pub fn main() !void {
         defer ray.endDrawing();
         ray.clearBackground(ray.colors.RayWhite);
         ray.drawTextureRec(texts.screen.texture.texture, texts.screen.source, .{ 0, 0 }, ray.colors.White);
-        ray.drawText("Arkanoid", (screen.width / 2) - (24 * 4), (screen.height / 2) - 12, 24, ray.colors.Black);
+        ray.drawRectangleRec(platform, ray.colors.Black);
     }
 }
 const LoadedTextures = struct {
