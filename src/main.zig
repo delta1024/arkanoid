@@ -9,6 +9,7 @@ const Brick = struct {
 };
 
 const BRICK_COUNT: usize = 12;
+const PLAT_SPEED: f32 = 3;
 pub fn main() !void {
     const screen = struct {
         pub const width: i32 = 800;
@@ -25,9 +26,17 @@ pub fn main() !void {
     var bricks: [BRICK_COUNT * 3]Brick = undefined;
     setupBricks(&bricks, brick_size);
 
-    const platform: Rectangle = .{ .x = (screen.width / 2) - 20, .y = screen.height - 20, .height = 10, .width = 40 };
+    var platform: Rectangle = .{ .x = (screen.width / 2) - 20, .y = screen.height - 20, .height = 10, .width = 40 };
 
     while (!ray.windowShouldClose()) {
+        const delta = ray.getFrameTime();
+        if (ray.isKeyDown(.Right)) {
+            platform.x += (PLAT_SPEED * delta) * screen.fps;
+        }
+        if (ray.isKeyDown(.Left)) {
+            platform.x -= (PLAT_SPEED * delta) * screen.fps;
+        }
+
         {
             ray.beginTextureMode(texts.screen.texture);
             defer ray.endTextureMode();
