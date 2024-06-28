@@ -25,7 +25,7 @@
     .dependencies = .{
         .raylib = .{
             .url = "../zraylib/raylib.tar.gz",
-            .hash = "1220be813f37cd305775249e2a52f7981c54730ea481baaad08289b11471d2d7cb00",
+            .hash = "12204ddc64a12b3f85e83de5676d191bc262546edfa7837b1f21971ac22f50c559d9",
         },
     },
     .paths = .{

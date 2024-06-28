@@ -13,6 +13,7 @@ const Brick = struct {
 const Ball = struct {
     pos: Vector2,
     dir: Vector2,
+    rad: f32,
 };
 
 const BRICK_COUNT: usize = 12;
@@ -40,6 +41,7 @@ pub fn main() !void {
     var ball: Ball = .{
         .pos = ball_def_pos,
         .dir = .{ 3, 1 },
+        .rad = 7,
     };
     var frame: f32 = 0;
     while (!ray.windowShouldClose()) : (frame += 1) {
@@ -50,13 +52,12 @@ pub fn main() !void {
         if (ray.isKeyDown(.Left)) {
             platform.x -= (PLAT_SPEED * delta) * screen.fps;
         }
-        if (ray.isKeyPressed(.Space)) {
-            ball.pos = ball_def_pos;
-            ball.dir *= Vector2{ -1, 1 };
-            platform = plat_def_pos;
-        }
+
         if (@mod(frame, BALL_SPEED) == 0)
             ball.pos += ball.dir;
+
+        if (ray.checkCollisionCircleRec(ball.pos, ball.rad, platform))
+            ball.dir *= .{ 1, -1 };
 
         {
             ray.beginTextureMode(texts.screen.texture);
@@ -66,7 +67,7 @@ pub fn main() !void {
                 if (!brick.hit)
                     ray.drawTexturePro(texts.brick.texture, texts.brick.source, brick.rec, .{ 0, 0 }, 0, brick.color);
             ray.drawRectangleRec(platform, ray.colors.Black);
-            ray.drawCircleV(ball.pos, 7, ray.colors.Green);
+            ray.drawCircleV(ball.pos, ball.rad, ray.colors.Green);
         }
         ray.beginDrawing();
         defer ray.endDrawing();
