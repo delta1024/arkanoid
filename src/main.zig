@@ -59,6 +59,20 @@ pub fn main() !void {
         if (ray.checkCollisionCircleRec(ball.pos, ball.rad, platform))
             ball.dir *= .{ 1, -1 };
 
+        const ball_lu_check = (ball.pos - Vector2{ ball.rad, ball.rad }) < Vector2{ 0, 0 };
+        const ball_rd_check = (ball.pos + Vector2{ ball.rad, ball.rad }) > Vector2{ screen.width, screen.height };
+        if (ball_lu_check[0]) {
+            ball.dir *= Vector2{ -1, 1 };
+        }
+        if (ball_lu_check[1]) {
+            ball.dir *= Vector2{ 1, -1 };
+        }
+        if (ball_rd_check[0]) {
+            ball.dir *= Vector2{ -1, 1 };
+        }
+        if (ball_rd_check[1]) {
+            ball.dir *= Vector2{ 1, -1 };
+        }
         {
             ray.beginTextureMode(texts.screen.texture);
             defer ray.endTextureMode();
