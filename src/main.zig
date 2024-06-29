@@ -18,6 +18,7 @@ const Ball = struct {
 const BRICK_COUNT: usize = 12;
 const PLAT_SPEED: f32 = 3;
 const BALL_SPEED: f32 = 3;
+
 pub fn main() !void {
     const screen = struct {
         pub const width: i32 = 800;
@@ -33,14 +34,15 @@ pub fn main() !void {
     defer shutdown(texts);
     var bricks: [BRICK_COUNT * 3]Brick = undefined;
     setupBricks(&bricks, brick_size);
-
-    var platform: Rectangle = .{ .x = (screen.width / 2) - 25, .y = screen.height - 20, .height = 10, .width = 40 };
-    const ball: Ball = .{
-        .pos = .{ @as(f32, @floatFromInt(screen.width / 2)) - 3.5, @as(f32, @floatFromInt(screen.height)) - 50 },
-        .dir = .{ 0, 0 },
+    const ball_def_pos: Vector2 = .{ @as(f32, @floatFromInt(screen.width / 2)) - 3.5, @as(f32, @floatFromInt(screen.height)) - 60 };
+    const plat_def_pos: Rectangle = .{ .x = (screen.width / 2) - 25, .y = screen.height - 20, .height = 10, .width = 40 };
+    var platform: Rectangle = plat_def_pos;
+    var ball: Ball = .{
+        .pos = ball_def_pos,
+        .dir = .{ 3, 1 },
     };
-
-    while (!ray.windowShouldClose()) {
+    var frame: f32 = 0;
+    while (!ray.windowShouldClose()) : (frame += 1) {
         const delta = ray.getFrameTime();
         if (ray.isKeyDown(.Right)) {
             platform.x += (PLAT_SPEED * delta) * screen.fps;
@@ -48,20 +50,28 @@ pub fn main() !void {
         if (ray.isKeyDown(.Left)) {
             platform.x -= (PLAT_SPEED * delta) * screen.fps;
         }
+        if (ray.isKeyPressed(.Space)) {
+            ball.pos = ball_def_pos;
+            ball.dir *= Vector2{ -1, 1 };
+            platform = plat_def_pos;
+        }
+        if (@mod(frame, BALL_SPEED) == 0)
+            ball.pos += ball.dir;
 
         {
             ray.beginTextureMode(texts.screen.texture);
             defer ray.endTextureMode();
+            ray.clearBackground(ray.colors.Blank);
             for (bricks) |brick|
                 if (!brick.hit)
                     ray.drawTexturePro(texts.brick.texture, texts.brick.source, brick.rec, .{ 0, 0 }, 0, brick.color);
+            ray.drawRectangleRec(platform, ray.colors.Black);
+            ray.drawCircleV(ball.pos, 7, ray.colors.Green);
         }
         ray.beginDrawing();
         defer ray.endDrawing();
         ray.clearBackground(ray.colors.RayWhite);
         ray.drawTextureRec(texts.screen.texture.texture, texts.screen.source, .{ 0, 0 }, ray.colors.White);
-        ray.drawRectangleRec(platform, ray.colors.Black);
-        ray.drawCircleV(ball.pos, 7, ray.colors.Green);
     }
 }
 const LoadedTextures = struct {
