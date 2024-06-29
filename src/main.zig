@@ -30,11 +30,11 @@ const screen = struct {
     pub const fps: i32 = 60;
 };
 const brick_size: f32 = @as(f32, @floatFromInt(screen.width)) / @as(f32, @floatFromInt(BRICK_COUNT));
-const ball_def_pos: Vector2 = .{ @as(f32, @floatFromInt(screen.width / 2)) - 3.5, @as(f32, @floatFromInt(screen.height)) - 60 };
+const ball_def_pos: Vector2 = .{ @as(f32, @floatFromInt(screen.width / 2)) - 3.5, @as(f32, @floatFromInt(screen.height)) - 90 };
 const plat_def_pos: Rectangle = .{ .x = (screen.width / 2) - 25, .y = screen.height - 20, .height = 10, .width = 40 };
 const def_ball: Ball = .{
     .pos = ball_def_pos,
-    .dir = .{ 3, 1 },
+    .dir = .{ 6, 2 },
     .rad = 7,
 };
 
@@ -77,12 +77,7 @@ pub fn main() !void {
             if (@mod(frame, BALL_SPEED) == 0)
                 ball.pos += ball.dir;
 
-            if (ray.checkCollisionLines(
-                .{ platform.x, platform.y },
-                .{ platform.x + platform.width, platform.y },
-                ball.bottom().start,
-                ball.bottom().end,
-            ) != null)
+            if (ray.checkCollisionCircleRec(ball.pos, ball.rad, platform))
                 ball.dir *= .{ 1, -1 };
 
             const ball_lu_check = (ball.pos - Vector2{ ball.rad, ball.rad }) < Vector2{ 0, 0 };
