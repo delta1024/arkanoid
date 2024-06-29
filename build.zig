@@ -19,13 +19,21 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
 
     const optimize = b.standardOptimizeOption(.{});
-    const raylib = b.dependency("raylib", .{});
+    const raylib = b.dependency("raylib", .{
+        .target = target,
+        .optimize = optimize,
+    });
 
     const exe = b.addExecutable(.{
         .name = "arkanoid",
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
+        .version = .{
+            .major = 0,
+            .minor = 1,
+            .patch = 0,
+        },
     });
     exe.root_module.addImport("raylib", raylib.module("raylib"));
     b.installArtifact(exe);
