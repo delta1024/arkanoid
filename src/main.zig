@@ -4,16 +4,96 @@ const Rectangle = ray.Rectangle;
 const Color = ray.Color;
 const Vector2 = ray.Vector2;
 
+const Line = struct {
+    start: Vector2,
+    end: Vector2,
+};
 const Brick = struct {
     rec: Rectangle,
     color: Color,
     hit: bool = false,
+    destroied: bool = false,
+    // (x, y) --------- (x1, y)
+    fn top(self: Brick) Line {
+        const x = self.rec.x;
+        const y = self.rec.y;
+        const x1 = self.rec.x + self.rec.width;
+        return Line{
+            .start = .{ x, y },
+            .end = .{ x1, y },
+        };
+    }
+    //  (x, y)
+    //    |
+    //    |
+    //    |
+    // (x, y1)
+    fn left(self: Brick) Line {
+        const x = self.rec.x;
+        const y = self.rec.y;
+        const y1 = self.rec.y + self.rec.height;
+        return Line{
+            .start = .{ x, y },
+            .end = .{ x, y1 },
+        };
+    }
+    //                     (x1, y)
+    //                       |
+    //                       |
+    //                       |
+    //                    (x1, y1)
+    fn right(self: Brick) Line {
+        const x1 = self.rec.x + self.rec.width;
+        const y = self.rec.y;
+        const y1 = self.rec.y + self.rec.height;
+        return Line{
+            .start = .{ x1, y },
+            .end = .{ x1, y1 },
+        };
+    }
+    //
+    //
+    //
+    // (x, y1) --------- (x1, y1)
+    fn bottom(self: Brick) Line {
+        const x = self.rec.x;
+        const x1 = self.rec.x + self.rec.width;
+        const y1 = self.rec.y + self.rec.height;
+        return Line{
+            .start = .{ x, y1 },
+            .end = .{ x1, y1 },
+        };
+    }
 };
 
 const Ball = struct {
     pos: Vector2,
     dir: Vector2,
     rad: f32,
+    fn top(self: Ball) Line {
+        return Line{
+            .start = self.pos - Vector2{ 0, self.rad },
+            .end = self.pos,
+        };
+    }
+    fn right(self: Ball) Line {
+        return Line{
+            .start = self.pos,
+            .end = self.pos + Vector2{ self.rad, 0 },
+        };
+    }
+    fn left(self: Ball) Line {
+        return Line{
+            .start = self.pos - Vector2{ self.rad, 0 },
+            .end = self.pos,
+        };
+    }
+    fn bottom(self: Ball) Line {
+        return Line{
+            .start = self.pos,
+            .end = self.pos + Vector2{ 0, self.rad },
+        };
+    }
 };
 
 const BRICK_COUNT: usize = 12;
@@ -56,7 +136,12 @@ pub fn main() !void {
         if (@mod(frame, BALL_SPEED) == 0)
             ball.pos += ball.dir;
 
-        if (ray.checkCollisionCircleRec(ball.pos, ball.rad, platform))
+        if (ray.checkCollisionLines(
+            .{ platform.x, platform.y },
+            .{ platform.x + platform.width, platform.y },
+            ball.bottom().start,
+            ball.bottom().end,
+        ) != null)
             ball.dir *= .{ 1, -1 };
 
         const ball_lu_check = (ball.pos - Vector2{ ball.rad, ball.rad }) < Vector2{ 0, 0 };
@@ -73,16 +158,54 @@ pub fn main() !void {
         if (ball_rd_check[1]) {
             ball.dir *= Vector2{ 1, -1 };
         }
+
+        bricks: for (&bricks) |*brick| {
+            if (brick.hit)
+                continue :bricks;
+            if (ray.checkCollisionCircleRec(ball.pos, ball.rad, brick.rec)) {
+                brick.hit = true;
+                var edge = brick.bottom();
+                var ball_axis = ball.top();
+                if (ray.checkCollisionLines(edge.start, edge.end, ball_axis.start, ball_axis.end)) |_| {
+                    ball.dir *= Vector2{ 1, -1 };
+                    break :bricks;
+                }
+                edge = brick.left();
+                ball_axis = ball.right();
+                if (ray.checkCollisionLines(edge.start, edge.end, ball_axis.start, ball_axis.end)) |_| {
+                    ball.dir *= Vector2{ -1, 1 };
+                    break :bricks;
+                }
+                edge = brick.right();
+                ball_axis = ball.left();
+                if (ray.checkCollisionLines(edge.start, edge.end, ball_axis.start, ball_axis.end)) |_| {
+                    ball.dir *= Vector2{ -1, 1 };
+                    break :bricks;
+                }
+                edge = brick.top();
+                ball_axis = ball.bottom();
+                if (ray.checkCollisionLines(edge.start, edge.end, ball_axis.start, ball_axis.end)) |_| {
+                    ball.dir *= Vector2{ 1, -1 };
+                    break :bricks;
+                }
+            }
+        }
+
         {
             ray.beginTextureMode(texts.screen.texture);
             defer ray.endTextureMode();
             ray.clearBackground(ray.colors.Blank);
-            for (bricks) |brick|
-                if (!brick.hit)
+            for (&bricks) |*brick|
+                if (!brick.hit or !brick.destroied) {
                     ray.drawTexturePro(texts.brick.texture, texts.brick.source, brick.rec, .{ 0, 0 }, 0, brick.color);
+                    if (brick.hit) {
+                        brick.destroied = true;
+                    }
+                };
             ray.drawRectangleRec(platform, ray.colors.Black);
             ray.drawCircleV(ball.pos, ball.rad, ray.colors.Green);
         }
+
         ray.beginDrawing();
         defer ray.endDrawing();
         ray.clearBackground(ray.colors.RayWhite);
